@@ -2,7 +2,7 @@ import sys
 import os
 import pandas as pd
 import re
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QComboBox, QPushButton, QScrollArea, QFrame, QTextEdit, QTextBrowser, QGroupBox, QTabWidget, QMainWindow, QSpinBox, QSplitter, QGridLayout, QMessageBox, QDialog, QMenu, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QComboBox, QPushButton, QScrollArea, QFrame, QTextEdit, QTextBrowser, QGroupBox, QTabWidget, QMainWindow, QSpinBox, QSplitter, QGridLayout, QMessageBox, QDialog, QMenu, QFileDialog, QCompleter
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QFont, QClipboard
 from PyQt5.QtGui import QFont, QTextOption, QTextBlockFormat, QTextCursor
@@ -21,7 +21,7 @@ class QuranSearchApp(QMainWindow):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         self.setWindowTitle('Açık Kur’an Araştırmacısı (PyQt5)')
         self.setGeometry(100, 100, 1400, 800)
-        self.font_arabic = QFont('Arial Unicode MS', 18)
+        self.font_arabic = QFont('Arial Unicode MS', 20)
         self.font_turkish = QFont('Arial', 12)
         self.player = QMediaPlayer()
         self.ARAP_HARFLER = ['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي','ء','ى']
@@ -78,7 +78,29 @@ class QuranSearchApp(QMainWindow):
         self.apply_theme()  # Tema uygula
         # Kök listesini combo'ya ekle
         if self.kok_df is not None:
-            self.root_input.addItems(sorted(self.kok_df['kelime'].tolist()))
+            # Tüm kökleri ekle (performans için alfabetik sıralı)
+            kok_listesi = sorted(self.kok_df['kelime'].tolist())
+            self.root_input.addItems(kok_listesi)
+            # QCompleter ekle - tüm köklerle arama önerisi
+            completer = QCompleter(kok_listesi)
+            completer.setCaseSensitivity(Qt.CaseInsensitive)
+            completer.setFilterMode(Qt.MatchContains)
+            completer.popup().setFont(QFont('Arial Unicode MS', 16))
+            completer.popup().setStyleSheet("""
+                QListView {
+                    font-family: 'Arial Unicode MS';
+                    font-size: 16px;
+                    padding: 5px;
+                }
+                QListView::item {
+                    padding: 5px;
+                    border-bottom: 1px solid #ddd;
+                }
+                QListView::item:hover {
+                    background-color: #e6f3ff;
+                }
+            """)
+            self.root_input.setCompleter(completer)
 
     def get_verse_count(self, sure):
         return self.verse_counts.get(sure, 0)
@@ -184,6 +206,21 @@ class QuranSearchApp(QMainWindow):
         self.root_input = QComboBox()
         self.root_input.setEditable(True)
         self.root_input.setPlaceholderText('Arapça kök girin, örn: الله')
+        # Arapça font ayarı - daha büyük ve net görünüm için
+        self.root_input.setFont(QFont('Arial Unicode MS', 16))
+        # Combobox popup listesi için de font ayarı
+        self.root_input.setStyleSheet("""
+            QComboBox {
+                font-family: 'Arial Unicode MS';
+                font-size: 16px;
+                padding: 5px;
+            }
+            QComboBox QAbstractItemView {
+                font-family: 'Arial Unicode MS';
+                font-size: 16px;
+                padding: 5px;
+            }
+        """)
         root_layout.addWidget(self.root_input)
         self.root_btn = QPushButton('Kök Ara')
         self.root_btn.clicked.connect(self.root_search)
